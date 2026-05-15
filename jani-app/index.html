@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자니..? — 보내기 전에, 한 번만</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --night: #0d0d12;
+    --deep: #13121a;
+    --card: #1a1825;
+    --border: rgba(255,255,255,0.07);
+    --muted: rgba(255,255,255,0.35);
+    --soft: rgba(255,255,255,0.65);
+    --white: #f5f3f0;
+    --rose: #e8a0a0;
+    --rose-dim: rgba(232,160,160,0.15);
+    --rose-glow: rgba(232,160,160,0.08);
+    --lavender: #b8a8d4;
+    --amber: #d4b896;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--night);
+    color: var(--white);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* PARTICLE CANVAS */
+  #particleCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* AMBIENT GLOW */
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(232,160,160,0.12), transparent 70%);
+    top: -200px; right: -100px;
+    animation: drift1 12s ease-in-out infinite alternate;
+  }
+  .glow-2 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(184,168,212,0.08), transparent 70%);
+    bottom: 100px; left: -150px;
+    animation: drift2 15s ease-in-out infinite alternate;
+  }
+  @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(-30px, 40px); } }
+  @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(40px, -30px); } }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 24px 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(13,13,18,0.9), transparent);
+    backdrop-filter: blur(0px);
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--rose);
+    letter-spacing: 0.02em;
+  }
+  .nav-badge {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    border-radius: 100px;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 40px 80px;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--rose);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    font-size: clamp(42px, 7vw, 88px);
+    line-height: 1.15;
+    color: var(--white);
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--rose);
+    font-family: 'DM Serif Display', serif;
+  }
+
+  .hero-title-sub {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    font-size: clamp(16px, 2.5vw, 26px);
+    color: var(--muted);
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-desc {
+    max-width: 520px;
+    font-size: 15px;
+    color: var(--soft);
+    line-height: 1.9;
+    margin-bottom: 60px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.8s 1s forwards;
+  }
+  .btn-primary {
+    background: var(--rose);
+    color: var(--night);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 36px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.3s;
+  }
+  .btn-primary:hover {
+    background: #f0b0b0;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(232,160,160,0.3);
+  }
+  .btn-ghost {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-ghost:hover { color: var(--white); }
+
+  /* PHONE MOCKUP */
+  .phone-wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    padding: 20px 0 100px;
+    opacity: 0;
+    animation: fadeUp 1s 1.2s forwards;
+  }
+  .phone {
+    width: 280px;
+    background: var(--card);
+    border-radius: 40px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 0 0 8px 8px;
+  }
+  .phone-inner {
+    background: var(--deep);
+    border-radius: 28px;
+    padding: 24px 20px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .phone-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phone-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose-dim), var(--lavender));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .phone-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white);
+  }
+  .phone-status {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .msg-bubble {
+    align-self: flex-end;
+    background: rgba(232,160,160,0.15);
+    border: 1px solid rgba(232,160,160,0.2);
+    border-radius: 18px 18px 4px 18px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--soft);
+    max-width: 80%;
+    line-height: 1.6;
+  }
+
+  .analysis-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-top: 4px;
+  }
+  .analysis-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--rose);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .risk-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .risk-name {
+    font-size: 11px;
+    color: var(--muted);
+    width: 50px;
+  }
+  .risk-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    margin: 0 10px;
+    overflow: hidden;
+  }
+  .risk-bar {
+    height: 100%;
+    border-radius: 10px;
+    animation: growBar 1.5s 2s both;
+  }
+  .risk-bar.high { background: linear-gradient(90deg, #e8a0a0, #d47070); width: 78%; }
+  .risk-bar.mid  { background: linear-gradient(90deg, var(--lavender), #9080c0); width: 52%; }
+  .risk-bar.low  { background: linear-gradient(90deg, var(--amber), #c09060); width: 30%; }
+  @keyframes growBar { from { width: 0 !important; } }
+  .risk-pct { font-size: 11px; color: var(--soft); font-weight: 500; width: 28px; text-align: right; }
+
+  .phone-warning {
+    background: rgba(232,160,160,0.08);
+    border: 1px solid rgba(232,160,160,0.2);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--rose);
+    line-height: 1.5;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .phone-warning-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+  .phone-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .pa-btn {
+    flex: 1;
+    padding: 9px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .pa-btn.stop {
+    background: rgba(232,160,160,0.12);
+    color: var(--rose);
+    border-color: rgba(232,160,160,0.25);
+  }
+  .pa-btn.fix {
+    background: rgba(184,168,212,0.1);
+    color: var(--lavender);
+    border-color: rgba(184,168,212,0.2);
+  }
+
+  /* SECTION */
+  section {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* WHY */
+  .why-section {
+    padding: 80px 60px 100px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--rose);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .section-title {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.3;
+    margin-bottom: 60px;
+    color: var(--white);
+  }
+  .section-title span { color: var(--rose); }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 36px 28px;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(232,160,160,0.2);
+  }
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 20px;
+    display: block;
+  }
+  .card-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  /* HOW IT WORKS */
+  .how-section {
+    padding: 80px 60px 100px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 32px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 48px;
+    color: rgba(232,160,160,0.2);
+    line-height: 1;
+    padding-top: 4px;
+  }
+  .step-content {}
+  .step-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+  .step-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 500px;
+  }
+  .step-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--rose);
+    background: var(--rose-dim);
+    border: 1px solid rgba(232,160,160,0.2);
+    padding: 4px 12px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+  }
+
+  /* STATS */
+  .stats-section {
+    padding: 80px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .stat-item {
+    background: var(--card);
+    padding: 48px 40px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 56px;
+    color: var(--rose);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* FOOTER CTA */
+  .footer-cta {
+    padding: 120px 60px;
+    text-align: center;
+    position: relative;
+  }
+  .footer-cta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(232,160,160,0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .footer-title {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    font-size: clamp(32px, 5vw, 60px);
+    line-height: 1.3;
+    margin-bottom: 20px;
+    color: var(--white);
+  }
+  .footer-title em {
+    font-style: italic;
+    color: var(--rose);
+    font-family: 'DM Serif Display', serif;
+  }
+  .footer-sub {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 48px;
+  }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 32px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-logo {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--rose);
+  }
+  .footer-copy {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* TYPING CURSOR */
+  .typing-cursor {
+    display: inline-block;
+    color: var(--rose);
+    font-weight: 300;
+    margin-left: 2px;
+    animation: blink 0.7s step-end infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.75s ease, transform 0.75s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    .why-section, .how-section, .stats-section, .footer-cta { padding-left: 24px; padding-right: 24px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PARTICLE CANVAS -->
+<canvas id="particleCanvas"></canvas>
+
+<div class="glow-orb glow-1"></div>
+<div class="glow-orb glow-2"></div>
+
+<nav>
+  <div class="logo">자니..?</div>
+  <div class="nav-badge">AI 감정 필터</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">보내기 전에, 한 번만</div>
+  <h1 class="hero-title">후회하기 전에<br><em>자니..?</em>한테 먼저</h1>
+  <p class="hero-title-sub">전송 버튼, 아직 누르지 마세요</p>
+  <p class="hero-desc">
+    감정이 폭발하는 순간, 전 애인에게 보내고 싶은 메시지를<br>
+    먼저 자니..?에게 입력하세요. AI가 위험도를 분석하고<br>
+    후회하지 않을 문장으로 다듬어 드립니다.
+  </p>
+  <div class="hero-cta">
+    <button class="btn-primary" onclick="location.href='/demo'">지금 시작하기</button>
+    <a href="#how" class="btn-ghost">어떻게 작동하나요 →</a>
+  </div>
+</section>
+
+<!-- PHONE MOCKUP -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="phone-header">
+        <div class="phone-avatar">💔</div>
+        <div>
+          <div class="phone-name">전 애인</div>
+          <div class="phone-status">자니..?가 분석 중...</div>
+        </div>
+      </div>
+
+      <div class="msg-bubble">
+        야 나 아직도 너 생각나거든? 왜 그랬어 진짜 이해를 못하겠어
+      </div>
+
+      <div class="analysis-card">
+        <div class="analysis-label">⚡ 위험도 분석</div>
+        <div class="risk-row">
+          <span class="risk-name">집착</span>
+          <div class="risk-bar-wrap"><div class="risk-bar high"></div></div>
+          <span class="risk-pct">78%</span>
+        </div>
+        <div class="risk-row">
+          <span class="risk-name">분노</span>
+          <div class="risk-bar-wrap"><div class="risk-bar mid"></div></div>
+          <span class="risk-pct">52%</span>
+        </div>
+        <div class="risk-row">
+          <span class="risk-name">찌질함</span>
+          <div class="risk-bar-wrap"><div class="risk-bar low"></div></div>
+          <span class="risk-pct">30%</span>
+        </div>
+      </div>
+
+      <div class="phone-warning">
+        <span class="phone-warning-icon">🌙</span>
+        <span>새벽 2시입니다. 지금 보내면 내일 아침 후회할 확률이 높아요.</span>
+      </div>
+
+      <div class="phone-actions">
+        <div class="pa-btn stop">일단 멈추기</div>
+        <div class="pa-btn fix">다듬어서 보내기</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHY -->
+<section>
+  <div class="why-section">
+    <div class="section-label">왜 자니..?인가</div>
+    <h2 class="section-title">
+      차단도, 참는 것도<br>
+      <span>답이 아니었으니까</span>
+    </h2>
+    <div class="cards-grid">
+      <div class="card">
+        <span class="card-icon">🔓</span>
+        <div class="card-title">차단은 금방 풀린다</div>
+        <p class="card-desc">직접 해제할 수 있는 차단은 감정이 터지는 순간 의미가 없어집니다.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🤖</span>
+        <div class="card-title">GPT 켤 정신이 없다</div>
+        <p class="card-desc">술자리, 새벽, 감정 폭발 순간엔 앱을 따로 켜서 검사받을 여유가 없습니다.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📓</span>
+        <div class="card-title">메모장엔 피드백이 없다</div>
+        <p class="card-desc">혼자 쓰는 글은 자신의 감정 위험도를 인지하지 못한 채 결국 전송으로 이어집니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="how-section">
+    <div class="section-label">작동 방식</div>
+    <h2 class="section-title">세 단계면 충분해요</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">보내고 싶은 말을 그대로 입력</div>
+          <p class="step-desc">다듬지 않아도 됩니다. 지금 머릿속에 있는 말 그대로 자니..?에게 먼저 보내세요.</p>
+          <span class="step-tag">판단 없이 받아드려요</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">AI가 위험도를 시각화</div>
+          <p class="step-desc">집착, 분노, 찌질함 수치를 한눈에 보여줍니다. 내 감정 상태를 객관적으로 볼 수 있어요.</p>
+          <span class="step-tag">감정 온도 측정</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">보내거나, 다듬거나, 멈추거나</div>
+          <p class="step-desc">그래도 꼭 전해야 한다면, 자존감을 지키는 세련된 문장으로 바꿔드립니다. 아니면 일단 저장해두고 내일 다시 봐요.</p>
+          <span class="step-tag">선택은 언제나 나의 것</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section>
+  <div class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-num"> 88.6%</div>
+        <p class="stat-label">충동적 연락 후<br>후회한다고 답한 비율</p>
+        <p class="stat-label"><br>(출처: 듀오 설문조사, 2021)</p>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">새벽</div>
+        <p class="stat-label">충동적 연락이<br>가장 많이 발생하는 시간대</p>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">3초</div>
+        <p class="stat-label">자니..?의 감정 분석<br>평균 소요 시간</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta">
+  <h2 class="footer-title">
+    다음엔 보내기 전에<br>
+    <em>자니..?</em>한테 먼저
+  </h2>
+  <p class="footer-sub">후회는 3초면 막을 수 있어요</p>
+  <button class="btn-primary" onclick="location.href='/demo'">지금 시작하기</button>
+</section>
+
+<footer>
+  <div class="footer-logo">자니..?</div>
+  <div class="footer-copy">보내기 전에, 한 번만 — 2026</div>
+</footer>
+
+<script>
+  /* ── 1. PARTICLE CANVAS ── */
+  (function () {
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    const COUNT = 80;
+    let particles = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    var COLORS = [
+      [232, 160, 160],
+      [184, 168, 212],
+      [160, 196, 232],
+      [168, 212, 184],
+      [212, 208, 160],
+    ];
+
+    for (let i = 0; i < COUNT; i++) {
+      var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2 + 0.8,
+        dx: (Math.random() - 0.5) * 0.25,
+        dy: (Math.random() - 0.5) * 0.25,
+        alpha: Math.random() * 0.45 + 0.2,
+        color: c,
+      });
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(function (p) {
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + p.color[0] + ',' + p.color[1] + ',' + p.color[2] + ',' + p.alpha + ')';
+        ctx.fill();
+      });
+      requestAnimationFrame(loop);
+    }
+    loop();
+  })();
+
+  /* ── 2 & 3. TYPING EFFECT + SEQUENTIAL FADE-IN ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    var titleEl   = document.querySelector('.hero-title');
+    var eyebrow   = document.querySelector('.hero-eyebrow');
+    var titleSub  = document.querySelector('.hero-title-sub');
+    var desc      = document.querySelector('.hero-desc');
+    var cta       = document.querySelector('.hero-cta');
+
+    /* Cancel all CSS animations on hero elements; control via JS */
+    [eyebrow, titleSub, desc, cta].forEach(function (el) {
+      el.style.animation = 'none';
+      el.style.opacity   = '0';
+      el.style.transform = 'translateY(24px)';
+    });
+
+    /* Prepare hero-title for typing */
+    titleEl.style.animation  = 'none';
+    titleEl.style.opacity    = '1';
+    titleEl.style.transform  = 'translateY(0)';
+    titleEl.innerHTML        = '';
+
+    /* Blinking cursor */
+    var cursor = document.createElement('span');
+    cursor.className   = 'typing-cursor';
+    cursor.textContent = '|';
+    titleEl.appendChild(cursor);
+
+    /* Text segments: type these in order, inserting HTML as needed */
+    var segments = [
+      { text: '후회하기 전에', type: 'text' },
+      { text: '',             type: 'br'   },
+      { text: '자니..?',      type: 'em'   },
+      { text: '한테 먼저',    type: 'text' },
+    ];
+
+    var si = 0, ci = 0, curNode = null;
+
+    function fadeInHeroElements() {
+      [eyebrow, titleSub, desc, cta].forEach(function (el, i) {
+        setTimeout(function () {
+          el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+          el.style.opacity    = '1';
+          el.style.transform  = 'translateY(0)';
+        }, 200 + i * 350);
+      });
+    }
+
+    function type() {
+      /* All segments done */
+      if (si >= segments.length) {
+        setTimeout(function () {
+          cursor.style.animation = 'none';
+          cursor.style.opacity   = '0';
+        }, 700);
+        fadeInHeroElements();
+        return;
+      }
+
+      var seg = segments[si];
+
+      if (seg.type === 'br') {
+        titleEl.insertBefore(document.createElement('br'), cursor);
+        si++;
+        ci = 0;
+        curNode = null;
+        setTimeout(type, 130);
+        return;
+      }
+
+      /* Create node at the start of each new segment */
+      if (ci === 0) {
+        if (seg.type === 'em') {
+          curNode = document.createElement('em');
+        } else {
+          curNode = document.createTextNode('');
+        }
+        titleEl.insertBefore(curNode, cursor);
+      }
+
+      if (ci < seg.text.length) {
+        curNode.textContent += seg.text[ci];
+        ci++;
+        setTimeout(type, 90);
+      } else {
+        si++;
+        ci = 0;
+        curNode = null;
+        setTimeout(type, 90);
+      }
+    }
+
+    /* Small initial pause before typing begins */
+    setTimeout(type, 500);
+  });
+
+  /* ── 4. SCROLL REVEAL ── */
+  (function () {
+    var revealTargets = document.querySelectorAll(
+      '.section-label, .section-title, .card, .step, .stat-item, .footer-title, .footer-sub, .footer-cta .btn-primary'
+    );
+
+    /* Stagger siblings within the same grid */
+    document.querySelectorAll('.cards-grid .card').forEach(function (el, i) {
+      el.style.transitionDelay = (i * 0.13) + 's';
+    });
+    document.querySelectorAll('.stat-item').forEach(function (el, i) {
+      el.style.transitionDelay = (i * 0.13) + 's';
+    });
+    document.querySelectorAll('.step').forEach(function (el, i) {
+      el.style.transitionDelay = (i * 0.1) + 's';
+    });
+
+    revealTargets.forEach(function (el) {
+      el.classList.add('reveal');
+    });
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    revealTargets.forEach(function (el) {
+      observer.observe(el);
+    });
+  })();
+</script>
+
+</body>
+</html>
